@@ -37,6 +37,7 @@
 </template>
 
 <script>
+import { mapGetters, mapActions } from 'vuex';
 import ModalPhoto from '@/components/ModalPhoto.vue';
 
 export default {
@@ -44,32 +45,23 @@ export default {
   components: { ModalPhoto },
   data() {
     return {
-      favorites: this.getFavoritesFromStorage(),
       error: null,
       modalPhoto: null,
     };
   },
-  mounted() {
-    window.addEventListener('storage', this.syncFavorites);
+  computed: {
+    ...mapGetters('favorites', ['getFavorites']),
+    favorites() {
+      return this.getFavorites;
+    },
   },
-  beforeDestroy() {
-    window.removeEventListener('storage', this.syncFavorites);
+  mounted() {
+    this.loadFavorites();
   },
   methods: {
-    getFavoritesFromStorage() {
-      try {
-        return JSON.parse(localStorage.getItem('favorites')) || [];
-      } catch {
-        this.error = 'Ошибка чтения избранного';
-        return [];
-      }
-    },
-    syncFavorites() {
-      this.favorites = this.getFavoritesFromStorage();
-    },
+    ...mapActions('favorites', ['loadFavorites', 'removeFavorite']),
     removeFromFavorites(photoId) {
-      this.favorites = this.favorites.filter((fav) => fav.id !== photoId);
-      localStorage.setItem('favorites', JSON.stringify(this.favorites));
+      this.removeFavorite(photoId);
     },
     openModal(photo) {
       this.modalPhoto = photo;
@@ -80,7 +72,7 @@ export default {
   },
   watch: {
     $route() {
-      this.favorites = this.getFavoritesFromStorage();
+      this.loadFavorites();
     },
   },
 };

@@ -49,7 +49,6 @@
                     <PhotoGrid
                       v-else
                       :photos="photos"
-                      :favorites="favorites"
                       :onToggleFavorite="toggleFavorite"
                       :onPhotoClick="openModal"
                       :onPhotoHover="showTooltip"
@@ -79,7 +78,7 @@
 </template>
 
 <script>
-import axios from 'axios';
+import { mapGetters, mapActions } from 'vuex';
 import UserList from '@/components/UserList.vue';
 import UserItem from '@/components/UserItem.vue';
 import AlbumList from '@/components/AlbumList.vue';
@@ -102,92 +101,79 @@ export default {
   },
   data() {
     return {
-      users: [],
-      loading: false,
-      error: null,
       openedUserId: null,
-      albums: [],
-      albumsLoading: false,
-      albumsError: null,
       openedAlbumId: null,
-      photos: [],
-      photosLoading: false,
-      photosError: null,
       tooltip: {
         visible: false,
         text: '',
         x: 0,
         y: 0,
       },
-      favorites: this.getFavoritesFromStorage(),
       modalPhoto: null,
     };
   },
+  computed: {
+    ...mapGetters('users', ['getUsers', 'isLoading', 'getError']),
+    ...mapGetters('albums', ['getAlbums', 'isLoading', 'getError']),
+    ...mapGetters('photos', ['getPhotos', 'isLoading', 'getError']),
+    users() {
+      return this.getUsers;
+    },
+    loading() {
+      return this.isLoading;
+    },
+    error() {
+      return this.getError;
+    },
+    albums() {
+      return this.getAlbums;
+    },
+    photos() {
+      return this.getPhotos;
+    },
+    albumsLoading() {
+      return this.$store.getters['albums/isLoading'];
+    },
+    albumsError() {
+      return this.$store.getters['albums/getError'];
+    },
+    photosLoading() {
+      return this.$store.getters['photos/isLoading'];
+    },
+    photosError() {
+      return this.$store.getters['photos/getError'];
+    },
+  },
   created() {
     this.fetchUsers();
+    this.loadFavorites();
   },
   methods: {
-    async fetchUsers() {
-      this.loading = true;
-      this.error = null;
-      try {
-        const res = await axios.get('https://json.medrocket.ru/users/');
-        this.users = res.data;
-      } catch (e) {
-        this.error = e.message || 'Ошибка сети';
-      } finally {
-        this.loading = false;
-      }
-    },
+    ...mapActions('users', ['fetchUsers']),
+    ...mapActions('albums', ['fetchAlbums', 'clearAlbums']),
+    ...mapActions('photos', ['fetchPhotos', 'clearPhotos']),
+    ...mapActions('favorites', ['toggleFavorite', 'loadFavorites']),
     async toggleUser(userId) {
       if (this.openedUserId === userId) {
         this.openedUserId = null;
-        this.albums = [];
-        this.albumsError = null;
+        this.clearAlbums();
         this.openedAlbumId = null;
-        this.photos = [];
-        this.photosError = null;
+        this.clearPhotos();
         return;
       }
       this.openedUserId = userId;
-      this.albums = [];
-      this.albumsLoading = true;
-      this.albumsError = null;
       this.openedAlbumId = null;
-      this.photos = [];
-      this.photosError = null;
-      try {
-        const res = await axios.get(
-          `https://json.medrocket.ru/albums?userId=${userId}`
-        );
-        this.albums = res.data;
-      } catch (e) {
-        this.albumsError = e.message || 'Ошибка сети';
-      } finally {
-        this.albumsLoading = false;
-      }
+      this.clearPhotos();
+      await this.fetchAlbums(userId);
     },
     async toggleAlbum(albumId) {
       if (this.openedAlbumId === albumId) {
         this.openedAlbumId = null;
-        this.photos = [];
-        this.photosError = null;
+        this.clearPhotos();
         return;
       }
       this.openedAlbumId = albumId;
-      this.photos = [];
-      this.photosLoading = true;
-      this.photosError = null;
-      try {
-        const res = await axios.get(
-          `https://json.medrocket.ru/photos?albumId=${albumId}`
-        );
-        this.photos = res.data;
-      } catch (e) {
-        this.photosError = e.message || 'Ошибка сети';
-      } finally {
-        this.photosLoading = false;
-      }
+      await this.fetchPhotos(albumId);
     },
     showTooltip(event, text) {
       this.tooltip.visible = true;
@@ -202,24 +188,6 @@ export default {
     hideTooltip() {
       this.tooltip.visible = false;
       this.tooltip.text = '';
-    },
-    isFavorite(photoId) {
-      return this.favorites.some((fav) => fav.id === photoId);
-    },
-    toggleFavorite(photo) {
-      if (this.isFavorite(photo.id)) {
-        this.favorites = this.favorites.filter((fav) => fav.id !== photo.id);
-      } else {
-        this.favorites = [...this.favorites, photo];
-      }
-      localStorage.setItem('favorites', JSON.stringify(this.favorites));
-    },
-    getFavoritesFromStorage() {
-      try {
-        return JSON.parse(localStorage.getItem('favorites')) || [];
-      } catch {
-        return [];
-      }
     },
     openModal(photo) {
       this.modalPhoto = photo;

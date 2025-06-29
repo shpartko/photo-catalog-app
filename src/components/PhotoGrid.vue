@@ -4,7 +4,7 @@
       v-for="photo in photos"
       :key="photo.id"
       :photo="photo"
-      :isFavorite="favorites.some((fav) => fav.id === photo.id)"
+      :isFavorite="isFavorite(photo.id)"
       :onToggleFavorite="onToggleFavorite"
       :onClick="onPhotoClick"
       :onHover="onPhotoHover"
@@ -14,6 +14,7 @@
 </template>
 
 <script>
+import { mapGetters } from 'vuex';
 import PhotoCard from './PhotoCard.vue';
 
 export default {
@@ -21,11 +22,13 @@ export default {
   components: { PhotoCard },
   props: {
     photos: { type: Array, required: true },
-    favorites: { type: Array, required: true },
     onToggleFavorite: { type: Function, required: true },
     onPhotoClick: { type: Function, required: false },
     onPhotoHover: { type: Function, required: false },
     onPhotoLeave: { type: Function, required: false },
+  },
+  computed: {
+    ...mapGetters('favorites', ['isFavorite']),
   },
 };
 </script>
