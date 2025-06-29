@@ -96,6 +96,10 @@
   justify-content: stretch;
   position: relative;
   overflow: hidden;
+
+  img {
+    cursor: pointer;
+  }
 }
 .star-icon {
   position: absolute;

@@ -9,7 +9,6 @@
       :src="photo.thumbnailUrl"
       :alt="photo.title"
       @click.stop="onClick && onClick(photo)"
-      style="cursor: pointer"
     />
     <img
       class="star-icon"
